@@ -3,7 +3,7 @@ const app = express();
 require('dotenv').config()
 var cors = require('cors');
 const port = process.env.PORT;
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 app.use(cors());
 app.use(express.json())
@@ -50,6 +50,28 @@ async function run() {
             const founderId = req.params.founderId
             const result = await startupCollection.findOne({ founderId: founderId })
             res.json(result)
+        })
+
+        app.get('/api/startup/:startupId', async (req, res) => {
+            const { startupId } = req.params
+            const query = {
+                _id: new ObjectId(startupId)
+            }
+            const result = await startupCollection.findOne(query)
+            res.json(result)
+        })
+
+        app.patch('/api/startup/:startupId', async (req, res) => {
+            const { startupId } = req.params;
+            const updatedData = req.body;
+            const query = { _id: new ObjectId(startupId) };
+            const { _id, ...dataToUpdate } = updatedData;
+
+            const result = await startupCollection.updateOne(query, {
+                $set: dataToUpdate
+            });
+
+            res.json(result);
         })
 
         app.post('/startups', async (req, res) => {
