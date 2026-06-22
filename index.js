@@ -40,6 +40,12 @@ async function run() {
         })
 
         // startup apis
+        app.get('/api/startups', async (req, res) => {
+            const cursor = startupCollection.find()
+            const result = await cursor.toArray()
+            res.json(result)
+        })
+
         app.get('/startup/:founderId', async (req, res) => {
             const founderId = req.params.founderId
             const result = await startupCollection.findOne({ founderId: founderId })
