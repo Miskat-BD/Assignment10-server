@@ -31,10 +31,18 @@ async function run() {
 
         const database = client.db(process.env.DB_NAME)
         const usersCollection = database.collection('user')
+        const startupCollection = database.collection('startups')
 
-        app.get('/api/users', async (req, res)=>{
+        app.get('/api/users', async (req, res) => {
             const cursor = usersCollection.find()
             const result = await cursor.toArray()
+            res.json(result)
+        })
+
+        // startup apis
+        app.post('/startups', async (req, res) => {
+            const startup = req.body
+            const result = await startupCollection.insertOne(startup)
             res.json(result)
         })
 
