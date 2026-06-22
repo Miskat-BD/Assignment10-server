@@ -74,6 +74,15 @@ async function run() {
             res.json(result);
         })
 
+        app.delete('/api/startup/:startupId', async (req, res) => {
+            const { startupId } = req.params
+            const query = {
+                _id: new ObjectId(startupId)
+            }
+            const result = await startupCollection.deleteOne(query)
+            res.json(result)
+        })
+
         app.post('/startups', async (req, res) => {
             const startup = req.body
             const result = await startupCollection.insertOne(startup)
