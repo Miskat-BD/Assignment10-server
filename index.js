@@ -40,6 +40,12 @@ async function run() {
         })
 
         // startup apis
+        app.get('/startup/:founderId', async (req, res) => {
+            const founderId = req.params.founderId
+            const result = await startupCollection.findOne({ founderId: founderId })
+            res.json(result)
+        })
+
         app.post('/startups', async (req, res) => {
             const startup = req.body
             const result = await startupCollection.insertOne(startup)
