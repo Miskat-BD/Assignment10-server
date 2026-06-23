@@ -2,7 +2,7 @@ const express = require('express');
 const app = express();
 require('dotenv').config()
 var cors = require('cors');
-const port = process.env.PORT;
+const port = 8000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 app.use(cors());
@@ -32,6 +32,7 @@ async function run() {
         const database = client.db(process.env.DB_NAME)
         const usersCollection = database.collection('user')
         const startupCollection = database.collection('startups')
+        const opportunityCollection = database.collection('opportunities')
 
         app.get('/api/users', async (req, res) => {
             const cursor = usersCollection.find()
@@ -86,6 +87,13 @@ async function run() {
         app.post('/startups', async (req, res) => {
             const startup = req.body
             const result = await startupCollection.insertOne(startup)
+            res.json(result)
+        })
+
+        // opportunity apis
+        app.post('/api/opportunity', async (req, res)=>{
+            const data = req.body
+            const result = await opportunityCollection.insertOne(data)
             res.json(result)
         })
 
