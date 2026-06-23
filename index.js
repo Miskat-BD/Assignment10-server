@@ -33,11 +33,31 @@ async function run() {
         const usersCollection = database.collection('user')
         const startupCollection = database.collection('startups')
         const opportunityCollection = database.collection('opportunities')
+        const subscriptionCollection = database.collection('subscription')
 
         app.get('/api/users', async (req, res) => {
             const cursor = usersCollection.find()
             const result = await cursor.toArray()
             res.json(result)
+        })
+
+        // subscription apis
+        app.post('/api/subscription', async (req, res) => {
+            const { sessionId, userEmail, priceId, userId } = req.body
+            const isExist = await subscriptionCollection.findOne({ sessionId })
+            if (isExist) {
+                return res.json({ msg: "Already Exist" })
+            }
+            const subscription = await subscriptionCollection.insertOne({ sessionId, userId, userEmail, priceId, paidAt: new Date() })
+            const update = await usersCollection.updateOne(
+                { email: userEmail },
+                {
+                    $set: {
+                        plan: 'premium'
+                    }
+                }
+            )
+            res.json(update)
         })
 
         // startup apis
