@@ -91,11 +91,36 @@ async function run() {
         })
 
         // opportunity apis
-        app.post('/api/opportunity', async (req, res)=>{
-            const data = req.body
-            const result = await opportunityCollection.insertOne(data)
-            res.json(result)
-        })
+        app.get('/api/opportunity/:startup_id', async (req, res) => {
+            try {
+                const { startup_id } = req.params;
+                const cursor = opportunityCollection.find({ startup_id: startup_id });
+                const result = await cursor.toArray();
+                res.json(result);
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+        app.post('/api/opportunity', async (req, res) => {
+            try {
+                const data = req.body;
+
+                if (data.startup_id && typeof data.startup_id === 'object') {
+                    data.startup_id = data.startup_id.toString();
+                }
+
+                const result = await opportunityCollection.insertOne(data);
+
+                if (result.acknowledged) {
+                    res.json({ success: true, data: result });
+                } else {
+                    res.json({ success: false, message: "Failed to insert into database" });
+                }
+            } catch (error) {
+                res.status(500).json({ success: false, message: error.message });
+            }
+        });
 
 
         // Send a ping to confirm a successful connection
