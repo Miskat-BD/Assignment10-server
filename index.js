@@ -142,6 +142,19 @@ async function run() {
             }
         });
 
+        app.patch('/api/opportunity/:id', async (req, res)=>{
+            const {id} = req.params
+            const updatedData = req.body
+            const {_id, ...dataToUpdate} = updatedData
+            const query = {
+                _id: new ObjectId(id)
+            }
+            const result = await opportunityCollection.updateOne(query, {
+                $set: dataToUpdate
+            })
+            res.json(result)
+        })
+
 
         // Send a ping to confirm a successful connection
         await client.db("admin").command({ ping: 1 });
