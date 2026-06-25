@@ -111,6 +111,22 @@ async function run() {
         })
 
         // opportunity apis
+        app.get('/api/opportunity', async (req, res) => {
+            const cursor = opportunityCollection.find()
+            const result = await cursor.toArray()
+            res.json(result)
+        })
+
+        app.get('/api/opportunity/:id', async (req, res) => {
+            const { id } = req.params;
+            const query = {
+                _id: new ObjectId(id)
+            }
+            const result = await opportunityCollection.findOne(query)
+            // const result = await cursor.toArray()
+            res.json(result)
+        })
+
         app.get('/api/opportunity/:startup_id', async (req, res) => {
             try {
                 const { startup_id } = req.params;
