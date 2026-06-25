@@ -34,6 +34,7 @@ async function run() {
         const startupCollection = database.collection('startups')
         const opportunityCollection = database.collection('opportunities')
         const subscriptionCollection = database.collection('subscription')
+        const applicationCollection = database.collection('applications')
 
         app.get('/api/users', async (req, res) => {
             const cursor = usersCollection.find()
@@ -178,6 +179,41 @@ async function run() {
             const result = await opportunityCollection.deleteOne(query)
             res.json(result)
         })
+
+        // applications apis
+        app.get('/api/applications/check', async (req, res) => {
+            const { opportunityId, email } = req.query;
+            if (!opportunityId || !email) {
+                return res.status(400).json({ error: "Missing parameters" });
+            }
+
+            const isApplied = await applicationCollection.findOne({
+                Opportunity_id: opportunityId,
+                Applicant_email: email
+            });
+
+            res.json({ hasApplied: !!isApplied });
+        });
+
+        app.post('/api/applications', async (req, res) => {
+            const data = req.body;
+
+            const isExist = await applicationCollection.findOne({
+                Opportunity_id: data.Opportunity_id,
+                Applicant_email: data.Applicant_email
+            });
+
+            if (isExist) {
+                return res.status(400).json({ success: false, message: "Already Applied" });
+            }
+
+            const newData = {
+                ...data,
+                appliedAt: new Date()
+            };
+            const result = await applicationCollection.insertOne(newData);
+            res.json(result);
+        });
 
 
         // Send a ping to confirm a successful connection
