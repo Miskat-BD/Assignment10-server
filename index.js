@@ -42,6 +42,28 @@ async function run() {
             res.json(result)
         })
 
+        app.get('/api/users/:id', async (req, res) => {
+            const { id } = req.params
+            const query = {
+                _id: new ObjectId(id)
+            }
+            const result = await usersCollection.findOne(query)
+            res.json(result)
+        })
+
+        app.patch('/api/users/:id', async (req, res) => {
+            const { id } = req.params;
+            const updatedData = req.body
+            const query = {
+                _id: new ObjectId(id)
+            }
+            const { _id, ...updateToData } = updatedData
+            const result = await usersCollection.updateOne(query, {
+                $set: updateToData
+            })
+            res.json(result)
+        })
+
         // subscription apis
         app.post('/api/subscription', async (req, res) => {
             const { sessionId, userEmail, priceId, userId } = req.body
@@ -181,6 +203,16 @@ async function run() {
         })
 
         // applications apis
+        app.get('/api/application/:applicantEmail', async (req, res) => {
+            const { applicantEmail } = req.params
+            const query = {
+                Applicant_email: applicantEmail
+            }
+            const cursor = applicationCollection.find(query)
+            const result = await cursor.toArray()
+            res.json(result)
+        })
+
         app.get('/api/applications/check', async (req, res) => {
             const { opportunityId, email } = req.query;
             if (!opportunityId || !email) {
