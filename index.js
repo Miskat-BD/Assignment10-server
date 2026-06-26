@@ -150,7 +150,7 @@ async function run() {
             res.json(result)
         })
 
-        app.get('/api/opportunity/:startup_id', async (req, res) => {
+        app.get('/api/opportunity/startup/:startup_id', async (req, res) => {
             try {
                 const { startup_id } = req.params;
                 const cursor = opportunityCollection.find({ startup_id: startup_id });
@@ -227,6 +227,16 @@ async function run() {
             res.json({ hasApplied: !!isApplied });
         });
 
+        app.get('/api/applications/startup/:startupId', async (req, res) => {
+            const { startupId } = req.params
+            const query = {
+                Startup_id: startupId
+            }
+            const cursor = await applicationCollection.find(query)
+            const result = await cursor.toArray()
+            res.json(result)
+        })
+
         app.post('/api/applications', async (req, res) => {
             const data = req.body;
 
@@ -244,6 +254,27 @@ async function run() {
                 appliedAt: new Date()
             };
             const result = await applicationCollection.insertOne(newData);
+            res.json(result);
+        });
+
+        app.patch(`/application/:id`, async (req, res) => {
+            const { id } = req.params;
+            const { status } = req.body; // <--- Destructure the property from the object
+
+            if (!status) {
+                return res.status(400).json({ success: false, message: "Status is required" });
+            }
+
+            const query = {
+                _id: new ObjectId(id)
+            };
+
+            const result = await applicationCollection.updateOne(query, {
+                $set: {
+                    Status: status
+                }
+            });
+
             res.json(result);
         });
 
