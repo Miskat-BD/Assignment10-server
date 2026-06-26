@@ -66,12 +66,12 @@ async function run() {
 
         // subscription apis
         app.post('/api/subscription', async (req, res) => {
-            const { sessionId, userEmail, priceId, userId } = req.body
+            const { sessionId, userName, userEmail, priceId, userId } = req.body
             const isExist = await subscriptionCollection.findOne({ sessionId })
             if (isExist) {
                 return res.json({ msg: "Already Exist" })
             }
-            const subscription = await subscriptionCollection.insertOne({ sessionId, userId, userEmail, priceId, paidAt: new Date() })
+            const subscription = await subscriptionCollection.insertOne({ sessionId, userName, userId, userEmail, amount: 29.99, priceId, paidAt: new Date() })
             const update = await usersCollection.updateOne(
                 { email: userEmail },
                 {
@@ -116,6 +116,20 @@ async function run() {
             });
 
             res.json(result);
+        })
+
+        app.patch('/api/startup/:id/status', async (req, res) => {
+            const { id } = req.params
+            const { status } = req.body
+            const query = {
+                _id: new ObjectId(id)
+            }
+            const result = await startupCollection.updateOne(query, {
+                $set: {
+                    status: status
+                }
+            })
+            res.json(result)
         })
 
         app.delete('/api/startup/:startupId', async (req, res) => {
@@ -232,7 +246,7 @@ async function run() {
             const query = {
                 Startup_id: startupId
             }
-            const cursor = await applicationCollection.find(query)
+            const cursor = await applicationCollection.find(query).sort({ _id: -1 })
             const result = await cursor.toArray()
             res.json(result)
         })
@@ -259,7 +273,7 @@ async function run() {
 
         app.patch(`/application/:id`, async (req, res) => {
             const { id } = req.params;
-            const { status } = req.body; // <--- Destructure the property from the object
+            const { status } = req.body;
 
             if (!status) {
                 return res.status(400).json({ success: false, message: "Status is required" });
