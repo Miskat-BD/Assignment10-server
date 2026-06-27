@@ -64,6 +64,14 @@ async function run() {
             res.json(result)
         })
 
+        // transaction apis
+        app.get('/api/transaction', async (req, res) => {
+            const cursor = subscriptionCollection.find().sort({ _id: -1 })
+            const result = await cursor.toArray()
+            res.json(result)
+
+        })
+
         // subscription apis
         app.post('/api/subscription', async (req, res) => {
             const { sessionId, userName, userEmail, priceId, userId } = req.body
