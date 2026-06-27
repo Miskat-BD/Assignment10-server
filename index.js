@@ -4,6 +4,7 @@ require('dotenv').config()
 var cors = require('cors');
 const port = 8000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+const { createRemoteJWKSet } = require('jose-cjs');
 
 app.use(cors());
 app.use(express.json())
@@ -24,6 +25,35 @@ const client = new MongoClient(uri, {
     }
 });
 
+
+const JWKS = createRemoteJWKSet(
+    new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
+);
+
+const verifyToken = async (req, res, next) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith("Bearer")) {
+        return res.status(401).json({ msg: "Unauthorized" });
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    if (!token) {
+        return res.status(401).json({ msg: "Unauthorized" });
+    }
+
+    try {
+        const { payload } = await jwtVerify(token, JWKS);
+        req.user = payload;
+
+        next();
+    } catch (error) {
+        console.log(error);
+        return res.status(401).json({ msg: "Unauthorized" });
+    }
+};
+
 async function run() {
     try {
         // Connect the client to the server	(optional starting in v4.7)
@@ -36,7 +66,7 @@ async function run() {
         const subscriptionCollection = database.collection('subscription')
         const applicationCollection = database.collection('applications')
 
-        app.get('/api/users', async (req, res) => {
+        app.get('/api/users', verifyToken, async (req, res) => {
             const cursor = usersCollection.find()
             const result = await cursor.toArray()
             res.json(result)
