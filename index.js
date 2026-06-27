@@ -63,6 +63,19 @@ async function run() {
             })
             res.json(result)
         })
+        app.patch('/api/users/:id/status', async (req, res) => {
+            const { id } = req.params;
+            const { status } = req.body;
+            const query = { _id: new ObjectId(id) };
+
+            const result = await usersCollection.updateOne(query, {
+                $set: {
+                    status: status
+                }
+            });
+
+            res.json(result);
+        });
 
         // transaction apis
         app.get('/api/transaction', async (req, res) => {
