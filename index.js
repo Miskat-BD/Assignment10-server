@@ -4,7 +4,7 @@ require('dotenv').config()
 var cors = require('cors');
 const port = 8000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
-const { createRemoteJWKSet } = require('jose-cjs');
+const { createRemoteJWKSet, jwtVerify } = require('jose-cjs');
 
 app.use(cors());
 app.use(express.json())
@@ -30,29 +30,33 @@ const JWKS = createRemoteJWKSet(
     new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
 );
 
-const verifyToken = async (req, res, next) => {
-    const authHeader = req.headers.authorization;
+// const verifyToken = async (req, res, next) => {
+//   const authHeader = req.headers.authorization;
+//   console.log(authHeader);
 
-    if (!authHeader || !authHeader.startsWith("Bearer")) {
-        return res.status(401).json({ msg: "Unauthorized" });
-    }
+//   if (!authHeader || !authHeader.startsWith("Bearer")) {
+//     return res.status(401).json({ msg: "Unauthorized" });
+//   }
 
-    const token = authHeader.split(" ")[1];
 
-    if (!token) {
-        return res.status(401).json({ msg: "Unauthorized" });
-    }
+//   const token = authHeader.split(" ")[1];
 
-    try {
-        const { payload } = await jwtVerify(token, JWKS);
-        req.user = payload;
+//   if (!token) {
+//     return res.status(401).json({ msg: "Unauthorized" });
+//   }
 
-        next();
-    } catch (error) {
-        console.log(error);
-        return res.status(401).json({ msg: "Unauthorized" });
-    }
-};
+//   try {
+//     const { payload } = await jwtVerify(token, JWKS);
+//     req.user = payload;
+
+//     next();
+//   } catch (error) {
+//     console.log(error);
+//     return res.status(401).json({ msg: "Unauthorized" });
+//   }
+// };
+
+
 
 async function run() {
     try {
@@ -65,8 +69,46 @@ async function run() {
         const opportunityCollection = database.collection('opportunities')
         const subscriptionCollection = database.collection('subscription')
         const applicationCollection = database.collection('applications')
+        const sessionCollection = database.collection('session');
 
-        app.get('/api/users', verifyToken, async (req, res) => {
+        const verifyToken = async (req, res, next) => {
+
+            const authHeader = req.headers?.authorization;
+            // console.log(authHeader);
+            if (!authHeader) {
+                return res.status(401).send({ message: 'unauthorized access' })
+            }
+
+            const token = authHeader.split(' ')[1]
+
+            if (!token) {
+                return res.status(401).send({ message: 'unauthorized access' })
+            }
+
+            const query = { token: token }
+            const session = await sessionCollection.findOne(query);
+
+            if (!session) {
+                return res.status(401).send({ message: 'unauthorized access' })
+            }
+
+            const userId = session.userId;
+
+
+            const userQuery = {
+                _id: userId
+            }
+
+            const user = await usersCollection.findOne(userQuery);
+            if (!user) {
+                return res.status(401).send({ message: 'unauthorized access' })
+            }
+            // set data in the req object
+            req.user = user;
+            next();
+        }
+
+        app.get('/api/users', async (req, res) => {
             const cursor = usersCollection.find()
             const result = await cursor.toArray()
             res.json(result)
@@ -81,7 +123,7 @@ async function run() {
             res.json(result)
         })
 
-        app.patch('/api/users/:id', async (req, res) => {
+        app.patch('/api/users/:id', verifyToken, async (req, res) => {
             const { id } = req.params;
             const updatedData = req.body
             const query = {
@@ -93,7 +135,7 @@ async function run() {
             })
             res.json(result)
         })
-        app.patch('/api/users/:id/status', async (req, res) => {
+        app.patch('/api/users/:id/status', verifyToken, async (req, res) => {
             const { id } = req.params;
             const { status } = req.body;
             const query = { _id: new ObjectId(id) };
@@ -116,7 +158,7 @@ async function run() {
         })
 
         // subscription apis
-        app.post('/api/subscription', async (req, res) => {
+        app.post('/api/subscription', verifyToken, async (req, res) => {
             const { sessionId, userName, userEmail, priceId, userId } = req.body
             const isExist = await subscriptionCollection.findOne({ sessionId })
             if (isExist) {
@@ -156,7 +198,7 @@ async function run() {
             res.json(result)
         })
 
-        app.patch('/api/startup/:startupId', async (req, res) => {
+        app.patch('/api/startup/:startupId', verifyToken, async (req, res) => {
             const { startupId } = req.params;
             const updatedData = req.body;
             const query = { _id: new ObjectId(startupId) };
@@ -169,7 +211,7 @@ async function run() {
             res.json(result);
         })
 
-        app.patch('/api/startup/:id/status', async (req, res) => {
+        app.patch('/api/startup/:id/status', verifyToken, async (req, res) => {
             const { id } = req.params
             const { status } = req.body
             const query = {
@@ -183,7 +225,7 @@ async function run() {
             res.json(result)
         })
 
-        app.delete('/api/startup/:startupId', async (req, res) => {
+        app.delete('/api/startup/:startupId', verifyToken, async (req, res) => {
             const { startupId } = req.params
             const query = {
                 _id: new ObjectId(startupId)
@@ -226,7 +268,7 @@ async function run() {
             }
         });
 
-        app.post('/api/opportunity', async (req, res) => {
+        app.post('/api/opportunity', verifyToken, async (req, res) => {
             try {
                 const data = req.body;
 
@@ -246,7 +288,7 @@ async function run() {
             }
         });
 
-        app.patch('/api/opportunity/:id', async (req, res) => {
+        app.patch('/api/opportunity/:id', verifyToken, async (req, res) => {
             const { id } = req.params
             const updatedData = req.body
             const { _id, ...dataToUpdate } = updatedData
@@ -258,7 +300,7 @@ async function run() {
             })
             res.json(result)
         })
-        app.delete('/api/opportunity/:id', async (req, res) => {
+        app.delete('/api/opportunity/:id', verifyToken, async (req, res) => {
             const { id } = req.params
             const query = {
                 _id: new ObjectId(id)
@@ -302,7 +344,7 @@ async function run() {
             res.json(result)
         })
 
-        app.post('/api/applications', async (req, res) => {
+        app.post('/api/applications', verifyToken, async (req, res) => {
             const data = req.body;
 
             const isExist = await applicationCollection.findOne({
@@ -322,7 +364,7 @@ async function run() {
             res.json(result);
         });
 
-        app.patch(`/application/:id`, async (req, res) => {
+        app.patch(`/application/:id`, verifyToken, async (req, res) => {
             const { id } = req.params;
             const { status } = req.body;
 
