@@ -183,13 +183,13 @@ async function run() {
             res.json(result)
         })
 
-        app.get('/startup/:founderId', async (req, res) => {
+        app.get('/startup/:founderId', verifyToken, async (req, res) => {
             const founderId = req.params.founderId
             const result = await startupCollection.findOne({ founderId: founderId })
             res.json(result)
         })
 
-        app.get('/api/startup/:startupId', async (req, res) => {
+        app.get('/api/startup/:startupId', verifyToken, async (req, res) => {
             const { startupId } = req.params
             const query = {
                 _id: new ObjectId(startupId)
@@ -242,16 +242,65 @@ async function run() {
 
         // opportunity apis
         app.get('/api/opportunity', async (req, res) => {
-            const { page = 1, limit = 5 } = req.query
-            const skip = (Number(page) - 1) * Number(limit)
-            const cursor = opportunityCollection.find().skip(skip).limit(Number(limit))
-            const result = await cursor.toArray()
-            const totalData = await opportunityCollection.countDocuments()
-            const totalPages = Math.ceil(totalData / Number(limit))
-            res.json({ opportunities: result, page: Number(page), totalPages, totalData})
-        })
+            try {
+                const { page = 1, limit = 6, search = "", workType = "" } = req.query;
+                const skip = (Number(page) - 1) * Number(limit);
 
-        app.get('/api/opportunity/:id', async (req, res) => {
+                let query = {};
+
+                if (search) {
+                    query.$or = [
+                        { role_title: { $regex: search, $options: "i" } },
+                        { required_skills: { $regex: search, $options: "i" } }
+                    ];
+                }
+
+                if (workType) {
+                    const workTypeArray = workType.split(',');
+                    query.work_type = { $in: workTypeArray };
+                }
+
+                const cursor = opportunityCollection.find(query).skip(skip).limit(Number(limit));
+                const result = await cursor.toArray();
+
+                const totalData = await opportunityCollection.countDocuments(query);
+                const totalPages = Math.ceil(totalData / Number(limit));
+
+                res.json({ opportunities: result, page: Number(page), totalPages, totalData });
+            } catch (error) {
+                res.status(500).json({ error: error.message });
+            }
+        });
+
+
+        // app.get('/api/opportunity', async (req, res) => {
+        //     try {
+        //         const { page = 1, limit = 6, search = "" } = req.query;
+        //         const skip = (Number(page) - 1) * Number(limit);
+
+        //         let query = {};
+        //         if (search) {
+        //             query = {
+        //                 $or: [
+        //                     { role_title: { $regex: search, $options: "i" } },
+        //                     { required_skills: { $regex: search, $options: "i" } }
+        //                 ]
+        //             };
+        //         }
+
+        //         const cursor = opportunityCollection.find(query).skip(skip).limit(Number(limit));
+        //         const result = await cursor.toArray();
+
+        //         const totalData = await opportunityCollection.countDocuments(query);
+        //         const totalPages = Math.ceil(totalData / Number(limit));
+
+        //         res.json({ opportunities: result, page: Number(page), totalPages, totalData });
+        //     } catch (error) {
+        //         res.status(500).json({ error: error.message });
+        //     }
+        // });
+
+        app.get('/api/opportunity/:id', verifyToken, async (req, res) => {
             const { id } = req.params;
             const query = {
                 _id: new ObjectId(id)
