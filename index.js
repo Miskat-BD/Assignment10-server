@@ -108,7 +108,7 @@ async function run() {
             next();
         }
 
-        app.get('/api/users', async (req, res) => {
+        app.get('/api/users', verifyToken, async (req, res) => {
             const cursor = usersCollection.find()
             const result = await cursor.toArray()
             res.json(result)
@@ -150,7 +150,7 @@ async function run() {
         });
 
         // transaction apis
-        app.get('/api/transaction', async (req, res) => {
+        app.get('/api/transaction', verifyToken, async (req, res) => {
             const cursor = subscriptionCollection.find().sort({ _id: -1 })
             const result = await cursor.toArray()
             res.json(result)
@@ -242,9 +242,13 @@ async function run() {
 
         // opportunity apis
         app.get('/api/opportunity', async (req, res) => {
-            const cursor = opportunityCollection.find()
+            const { page = 1, limit = 5 } = req.query
+            const skip = (Number(page) - 1) * Number(limit)
+            const cursor = opportunityCollection.find().skip(skip).limit(Number(limit))
             const result = await cursor.toArray()
-            res.json(result)
+            const totalData = await opportunityCollection.countDocuments()
+            const totalPages = Math.ceil(totalData / Number(limit))
+            res.json({ opportunities: result, page: Number(page), totalPages, totalData})
         })
 
         app.get('/api/opportunity/:id', async (req, res) => {
